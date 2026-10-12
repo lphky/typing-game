@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keyboard Test｜鍵盤打字測驗</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --navy:#09162a;
+    --navy2:#102746;
+    --panel:#ffffff;
+    --soft:#f5f8fc;
+    --text:#162238;
+    --muted:#6a7890;
+    --line:#dce5f0;
+    --blue:#2f6df6;
+    --blue-soft:#eaf1ff;
+    --green:#18a565;
+    --green-soft:#ebfbf3;
+    --red:#d94c4c;
+    --orange:#f59e0b;
+    --shadow:0 26px 74px rgba(0,0,0,.28);
+  }
+
+  html, body { min-height:100%; }
+  body {
+    margin:0;
+    font-family: Inter, "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(circle at 12% 20%, rgba(47,109,246,.18), transparent 26%),
+      radial-gradient(circle at 86% 78%, rgba(64,217,255,.11), transparent 28%),
+      linear-gradient(145deg,var(--navy),var(--navy2));
+    overflow-x:hidden;
+  }
+  body::before {
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+    background-size:34px 34px;
+    mask-image:linear-gradient(to bottom,rgba(0,0,0,.75),transparent 90%);
+  }
+
+  .app {
+    position:relative;
+    z-index:1;
+    width:min(1020px,calc(100% - 28px));
+    min-height:100vh;
+    margin:auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:22px 0;
+  }
+  .screen { display:none; width:100%; animation:screenIn .28s ease both; }
+  .screen.active { display:block; }
+  @keyframes screenIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+  .panel {
+    background:rgba(255,255,255,.98);
+    border:1px solid rgba(255,255,255,.75);
+    border-radius:26px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+
+  /* SETUP */
+  .setup { padding:38px 42px 40px; }
+  .brand { display:flex; gap:18px; align-items:center; }
+  .brand-icon {
+    width:74px; height:74px; border-radius:22px;
+    display:grid; place-items:center;
+    color:#fff; font-size:36px;
+    background:linear-gradient(145deg,#2f6df6,#65a6ff);
+    box-shadow:0 14px 30px rgba(47,109,246,.30),inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  .kicker { font-size:13px; font-weight:900; letter-spacing:2.8px; color:var(--blue); text-transform:uppercase; margin-bottom:5px; }
+  h1 { margin:0; font-size:clamp(38px,5.5vw,62px); line-height:1; letter-spacing:-1px; font-weight:950; }
+  .subtitle { margin:10px 0 0; font-size:18px; font-weight:650; color:var(--muted); }
+
+  .rule-card {
+    margin-top:28px;
+    background:linear-gradient(180deg,#f8fbff,#f3f7fc);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:20px 22px;
+  }
+  .rule-card h2 { margin:0 0 13px; font-size:20px; }
+  .rules { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  .rule {
+    display:flex; gap:12px; align-items:flex-start;
+    background:#fff; border:1px solid #e3eaf3; border-radius:14px; padding:14px;
+  }
+  .rule-icon { font-size:23px; line-height:1.2; }
+  .rule b { display:block; font-size:16px; margin-bottom:3px; }
+  .rule span { color:var(--muted); font-size:14px; line-height:1.45; font-weight:600; }
+
+  .dic-box {
+    margin-top:18px;
+    display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    border:1px solid #dce6f2; background:#fff; border-radius:16px; padding:14px 16px;
+  }
+  .dic-left { min-width:0; }
+  .dic-title { font-size:14px; color:#8794a7; font-weight:900; letter-spacing:1px; text-transform:uppercase; }
+  .dic-status { margin-top:3px; font-size:16px; font-weight:800; color:#526176; }
+  .dic-status.ok { color:#16804f; }
+  .dic-status.bad { color:#b93d3d; }
+  .file-btn {
+    border:1px solid #d4deea; background:#fff; color:#334155;
+    border-radius:11px; padding:10px 14px; font-size:14px; font-weight:850; cursor:pointer;
+  }
+  #dicFile { display:none; }
+
+  .start-btn {
+    width:100%; margin-top:20px; border:0; border-radius:16px; padding:17px 20px;
+    color:#fff; background:linear-gradient(90deg,#2f6df6,#4b89ff);
+    font-size:22px; font-weight:950; cursor:pointer;
+    box-shadow:0 13px 28px rgba(47,109,246,.28); transition:.15s ease;
+  }
+  .start-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 17px 35px rgba(47,109,246,.32); }
+  .start-btn:disabled { opacity:.42; cursor:not-allowed; box-shadow:none; }
+  .start-note { margin-top:10px; text-align:center; color:#8490a2; font-size:13px; font-weight:650; }
+
+  /* GAME */
+  .game { padding:22px 24px 18px; position:relative; }
+  .game::after {
+    content:""; position:absolute; width:380px; height:380px; right:-150px; top:-210px;
+    background:radial-gradient(circle,rgba(47,109,246,.12),transparent 68%); border-radius:50%; pointer-events:none;
+  }
+  .hud { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; position:relative; z-index:1; }
+  .stat {
+    background:#fff; border:1px solid #e1e8f1; border-radius:15px; padding:11px 14px;
+    box-shadow:0 4px 12px rgba(15,23,42,.045);
+  }
+  .stat-label { font-size:11px; font-weight:900; color:#8996a9; text-transform:uppercase; letter-spacing:1.2px; }
+  .stat-value { margin-top:2px; font-size:29px; font-weight:950; line-height:1; color:#19263a; }
+  .stat-value.blue { color:var(--blue); }
+
+  .phase-row { margin:15px 2px 0; position:relative; z-index:1; }
+  .phase-meta { display:flex; justify-content:space-between; gap:10px; font-size:13px; font-weight:850; color:#718097; margin-bottom:7px; }
+  .track { height:9px; border-radius:999px; background:#dce6f1; overflow:hidden; }
+  .track-fill { height:100%; width:0; border-radius:inherit; background:linear-gradient(90deg,#2f6df6,#40d9ff); transition:width .2s ease; }
+
+  .play-zone {
+    min-height:430px; padding:36px 12px 24px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    position:relative; z-index:1;
+  }
+  .phase-badge {
+    padding:7px 12px; border-radius:999px; background:var(--blue-soft); color:var(--blue);
+    font-size:13px; font-weight:900; letter-spacing:.4px; margin-bottom:16px;
+  }
+  .question-card {
+    display:inline-flex; align-items:center; justify-content:center;
+    max-width:96%; min-width:120px; min-height:98px;
+    padding:18px 32px; border:3px solid #263951; border-radius:18px;
+    background:#fff; box-shadow:0 12px 28px rgba(15,23,42,.09);
+    font-family:Consolas,"SFMono-Regular","Courier New",monospace;
+    font-size:76px; line-height:1.05; font-weight:850; white-space:pre;
+    overflow:hidden; text-align:center;
+    transition:border-color .18s,box-shadow .18s,background .18s,transform .18s;
+  }
+  .char { display:inline-block; color:#293548; transition:color .1s,transform .1s,text-shadow .1s; }
+  .char.typed { color:var(--blue); text-shadow:0 0 12px rgba(47,109,246,.18); animation:pop .14s ease; }
+  @keyframes pop { 50%{transform:scale(1.10)} }
+  .question-card.complete {
+    background:var(--green-soft); border-color:var(--green);
+    box-shadow:0 0 0 6px rgba(24,165,101,.09),0 13px 30px rgba(24,165,101,.14);
+    animation:complete .42s ease;
+  }
+  .question-card.complete .char { color:var(--green); }
+  @keyframes complete { 45%{transform:scale(1.035)} }
+  .question-card.error { border-color:#e16b6b; animation:shake .18s linear; }
+  @keyframes shake { 0%,100%{transform:none} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+  .question-card.enter { animation:enter .2s ease both; }
+  @keyframes enter { from{opacity:0;transform:translateY(10px) scale(.985)} to{opacity:1;transform:none} }
+
+  .feedback { min-height:38px; margin-top:13px; display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:900; }
+  .feedback.good { color:var(--green); }
+  .feedback.bad { color:var(--red); }
+  .test-note { margin-top:4px; min-height:25px; color:#75849a; font-size:15px; font-weight:700; }
+
+  .game-footer {
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    border-top:1px solid #e7edf4; padding-top:13px; position:relative; z-index:1;
+  }
+  .footer-tip { color:#8190a3; font-size:13px; font-weight:700; }
+  .end-btn {
+    border:1px solid #d7e0eb; background:#fff; color:#66758a;
+    border-radius:10px; padding:8px 12px; font-size:13px; font-weight:850; cursor:pointer;
+  }
+
+  /* COUNTDOWN */
+  .countdown-overlay {
+    position:fixed; inset:0; z-index:30; display:none; place-items:center;
+    background:rgba(5,14,28,.72); backdrop-filter:blur(8px);
+  }
+  .countdown-overlay.show { display:grid; }
+  .countdown-number { color:#fff; font-size:min(25vw,180px); font-weight:950; text-shadow:0 14px 40px rgba(0,0,0,.35); animation:countPop .7s ease both; }
+  @keyframes countPop { from{opacity:0;transform:scale(.65)} 45%{opacity:1;transform:scale(1.06)} to{opacity:1;transform:scale(1)} }
+
+  /* RESULT */
+  .result { padding:40px 42px; text-align:center; }
+  .result-kicker { color:var(--blue); font-size:13px; font-weight:900; letter-spacing:2.4px; text-transform:uppercase; }
+  .result h2 { margin:8px 0 4px; font-size:clamp(40px,6vw,64px); line-height:1; font-weight:950; }
+  .result-sub { color:var(--muted); font-size:17px; font-weight:650; }
+  .result-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; max-width:650px; margin:28px auto 0; }
+  .result-stat { background:#f7f9fc; border:1px solid #e1e8f0; border-radius:18px; padding:22px 14px; }
+  .result-stat .n { font-size:44px; font-weight:950; line-height:1; color:#19263a; }
+  .result-stat .t { margin-top:7px; font-size:12px; color:#8290a2; font-weight:900; letter-spacing:1.1px; text-transform:uppercase; }
+  .detail-box {
+    max-width:650px; margin:14px auto 0; padding:14px 16px; border:1px solid #e1e8f0; border-radius:15px;
+    background:#fff; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+  }
+  .detail-item b { display:block; font-size:18px; }
+  .detail-item span { color:#8491a4; font-size:12px; font-weight:750; }
+  .result-actions { margin-top:24px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap; }
+  .primary,.secondary { border-radius:13px; padding:12px 20px; font-size:16px; font-weight:900; cursor:pointer; }
+  .primary { border:0; color:#fff; background:var(--blue); box-shadow:0 9px 20px rgba(47,109,246,.23); }
+  .secondary { border:1px solid #d7e0ea; color:#425167; background:#fff; }
+
+  @media(max-width:700px){
+    .app{width:min(100% - 14px,1020px);padding:8px 0;}
+    .setup,.result{padding:25px 20px 28px;}
+    .brand{align-items:flex-start}.brand-icon{width:58px;height:58px;border-radius:17px;font-size:29px}.subtitle{font-size:15px}
+    .rules{grid-template-columns:1fr}
+    .game{padding:14px 10px 12px;border-radius:18px}.hud{gap:7px}.stat{padding:9px 8px}.stat-value{font-size:22px}.stat-label{font-size:9px}
+    .play-zone{min-height:375px;padding:24px 6px 18px}.question-card{font-size:50px;min-height:84px;padding:15px 18px;border-radius:15px}
+    .game-footer{flex-direction:column}.result-grid{grid-template-columns:1fr 1fr}.detail-box{grid-template-columns:1fr}
+  }
+  @media(max-width:430px){ .result-grid{grid-template-columns:1fr}.question-card{font-size:42px} }
+  @media(prefers-reduced-motion:reduce){ *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important} }
+</style>
+</head>
+<body>
+<main class="app">
+  <section id="setupScreen" class="screen active">
+    <div class="panel setup">
+      <div class="brand">
+        <div class="brand-icon">⌨</div>
+        <div>
+          <div class="kicker">Keyboard Test</div>
+          <h1>鍵盤打字測驗</h1>
+          <p class="subtitle">3 分鐘固定測驗・依字典順序完成後進入隨機加試</p>
+        </div>
+      </div>
+
+      <div class="rule-card">
+        <h2>測驗規則</h2>
+        <div class="rules">
+          <div class="rule"><div class="rule-icon">1️⃣</div><div><b>第一輪按順序作答</b><span>依 typing.dic 第 1 至第 15 題順序完成，不能跳題。</span></div></div>
+          <div class="rule"><div class="rule-icon">🔀</div><div><b>完成 15 題後隨機</b><span>如時間尚餘，系統會從同一字典隨機抽題繼續。</span></div></div>
+          <div class="rule"><div class="rule-icon">⏱️</div><div><b>固定 3 分鐘</b><span>開始倒數後不能暫停；時間到會自動結束。</span></div></div>
+          <div class="rule"><div class="rule-icon">🎯</div><div><b>記錄完成題數與準確率</b><span>準確率＝正確字元 ÷ 所有實際輸入字元。</span></div></div>
+        </div>
+      </div>
+
+      <div class="dic-box">
+        <div class="dic-left">
+          <div class="dic-title">typing.dic</div>
+          <div id="dicStatus" class="dic-status">正在載入字典…</div>
+        </div>
+        <div>
+          <label class="file-btn" for="dicFile">手動載入</label>
+          <input id="dicFile" type="file" accept=".dic,.txt,text/plain">
+        </div>
+      </div>
+
+      <button id="startBtn" class="start-btn" disabled>開始 3 分鐘測驗 →</button>
+      <div class="start-note">必須成功載入剛好 15 題後才可開始</div>
+    </div>
+  </section>
+
+  <section id="gameScreen" class="screen">
+    <div class="panel game">
+      <div class="hud">
+        <div class="stat"><div class="stat-label">Completed</div><div id="completedCount" class="stat-value blue">0</div></div>
+        <div class="stat"><div class="stat-label">Accuracy</div><div id="accuracy" class="stat-value">100%</div></div>
+        <div class="stat"><div class="stat-label">Time</div><div id="timer" class="stat-value">3:00</div></div>
+      </div>
+
+      <div class="phase-row">
+        <div class="phase-meta"><span id="phaseText">順序題 1 / 15</span><span id="phaseRight">第一輪</span></div>
+        <div class="track"><div id="phaseFill" class="track-fill"></div></div>
+      </div>
+
+      <div class="play-zone">
+        <div id="phaseBadge" class="phase-badge">SEQUENTIAL · 順序作答</div>
+        <div id="target" class="question-card" aria-label="打字題目">準備</div>
+        <div id="feedback" class="feedback" aria-live="polite"></div>
+        <div id="testNote" class="test-note">請按畫面內容逐字輸入</div>
+      </div>
+
+      <div class="game-footer">
+        <div class="footer-tip">正確字元會轉藍；完成整題後會短暫轉綠，再進入下一題。</div>
+        <button id="endBtn" class="end-btn">提前結束</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="resultScreen" class="screen">
+    <div class="panel result">
+      <div class="result-kicker">Typing Test Complete</div>
+      <h2>測驗完成</h2>
+      <div class="result-sub">3 分鐘測驗結果</div>
+
+      <div class="result-grid">
+        <div class="result-stat"><div id="finalCompleted" class="n">0</div><div class="t">完成題數</div></div>
+        <div class="result-stat"><div id="finalAccuracy" class="n">100%</div><div class="t">準確率</div></div>
+      </div>
+
+      <div class="detail-box">
+        <div class="detail-item"><b id="finalCorrect">0</b><span>正確字元</span></div>
+        <div class="detail-item"><b id="finalWrong">0</b><span>錯誤字元</span></div>
+        <div class="detail-item"><b id="finalFirstRound">0 / 15</b><span>首輪完成</span></div>
+      </div>
+
+      <div class="result-actions">
+        <button id="retryBtn" class="primary">重新測驗</button>
+        <button id="setupBtn" class="secondary">返回首頁</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="countdownOverlay" class="countdown-overlay"><div id="countdownNumber" class="countdown-number">3</div></div>
+
+<script>
+  const TEST_SECONDS = 180;
+  const REQUIRED_QUESTIONS = 15;
+
+  let dictionary = [];
+  let currentTarget = '';
+  let typedLength = 0;
+  let sequentialIndex = 0;
+  let randomMode = false;
+  let lastRandomIndex = -1;
+  let completedCount = 0;
+  let correctChars = 0;
+  let wrongChars = 0;
+  let timeLeft = TEST_SECONDS;
+  let timerInterval = null;
+  let gameStarted = false;
+  let transitioning = false;
+
+  const setupScreen = document.getElementById('setupScreen');
+  const gameScreen = document.getElementById('gameScreen');
+  const resultScreen = document.getElementById('resultScreen');
+  const dicStatus = document.getElementById('dicStatus');
+  const dicFile = document.getElementById('dicFile');
+  const startBtn = document.getElementById('startBtn');
+  const target = document.getElementById('target');
+  const feedback = document.getElementById('feedback');
+  const testNote = document.getElementById('testNote');
+  const completedEl = document.getElementById('completedCount');
+  const accuracyEl = document.getElementById('accuracy');
+  const timerEl = document.getElementById('timer');
+  const phaseText = document.getElementById('phaseText');
+  const phaseRight = document.getElementById('phaseRight');
+  const phaseFill = document.getElementById('phaseFill');
+  const phaseBadge = document.getElementById('phaseBadge');
+  const countdownOverlay = document.getElementById('countdownOverlay');
+  const countdownNumber = document.getElementById('countdownNumber');
+
+  function showScreen(which){
+    [setupScreen,gameScreen,resultScreen].forEach(s=>s.classList.remove('active'));
+    which.classList.add('active');
+  }
+
+  function parseDictionary(text){
+    return text.replace(/^\uFEFF/,'').split(/\r?\n/)
+      .map(line=>line.trim())
+      .filter(line=>line.length>0 && !line.startsWith('//'));
+  }
+
+  function applyDictionary(items, sourceName='typing.dic'){
+    dictionary = items;
+    if(dictionary.length === REQUIRED_QUESTIONS){
+      dicStatus.textContent = `✓ 已載入 ${sourceName}（15 題）`;
+      dicStatus.className = 'dic-status ok';
+      startBtn.disabled = false;
+    } else {
+      dicStatus.textContent = `字典共有 ${dictionary.length} 題；測驗要求剛好 15 題。`;
+      dicStatus.className = 'dic-status bad';
+      startBtn.disabled = true;
+    }
+  }
+
+  async function autoLoadDictionary(){
+    try{
+      const res = await fetch('typing.dic',{cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      applyDictionary(parseDictionary(await res.text()),'typing.dic');
+    }catch(err){
+      dictionary=[];
+      dicStatus.textContent='未能自動載入 typing.dic，請按「手動載入」。';
+      dicStatus.className='dic-status bad';
+      startBtn.disabled=true;
+    }
+  }
+
+  dicFile.addEventListener('change', async()=>{
+    const file=dicFile.files[0];
+    if(!file) return;
+    try{ applyDictionary(parseDictionary(await file.text()),file.name); }
+    catch(err){
+      dictionary=[];
+      dicStatus.textContent='無法讀取字典檔。';
+      dicStatus.className='dic-status bad';
+      startBtn.disabled=true;
+    }
+  });
+
+  function formatTime(sec){
+    const m=Math.floor(sec/60);
+    const s=sec%60;
+    return `${m}:${String(s).padStart(2,'0')}`;
+  }
+
+  function accuracy(){
+    const total=correctChars+wrongChars;
+    return total ? Math.round((correctChars/total)*100) : 100;
+  }
+
+  function updateHud(){
+    completedEl.textContent=completedCount;
+    accuracyEl.textContent=accuracy()+'%';
+    timerEl.textContent=formatTime(timeLeft);
+
+    if(!randomMode){
+      const shown=Math.min(sequentialIndex+1,REQUIRED_QUESTIONS);
+      phaseText.textContent=`順序題 ${shown} / ${REQUIRED_QUESTIONS}`;
+      phaseRight.textContent='第一輪';
+      phaseFill.style.width=(sequentialIndex/REQUIRED_QUESTIONS*100)+'%';
+      phaseBadge.textContent='SEQUENTIAL · 順序作答';
+    }else{
+      phaseText.textContent='15 題已完成 · 隨機加試';
+      phaseRight.textContent='隨機階段';
+      phaseFill.style.width='100%';
+      phaseBadge.textContent='RANDOM · 隨機加試';
+    }
+  }
+
+  function renderTarget(){
+    const chars=Array.from(currentTarget);
+    const frag=document.createDocumentFragment();
+    chars.forEach((ch,i)=>{
+      const span=document.createElement('span');
+      span.className='char'+(i<typedLength?' typed':'');
+      span.textContent=ch;
+      frag.appendChild(span);
+    });
+    target.replaceChildren(frag);
+    fitText();
+  }
+
+  function fitText(){
+    if(!currentTarget) return;
+    const isMobile=window.innerWidth<=700;
+    let size=isMobile?52:78;
+    const min=isMobile?20:24;
+    target.style.fontSize=size+'px';
+    const limit=Math.min(window.innerWidth*0.90,920);
+    while(size>min && target.scrollWidth>limit){
+      size-=2;
+      target.style.fontSize=size+'px';
+    }
+  }
+
+  function setQuestion(text){
+    currentTarget=text;
+    typedLength=0;
+    feedback.textContent='';
+    feedback.className='feedback';
+    target.className='question-card enter';
+    testNote.textContent=randomMode?'隨機加試：繼續準確輸入':'請按畫面內容逐字輸入';
+    renderTarget();
+    setTimeout(()=>target.classList.remove('enter'),220);
+    updateHud();
+  }
+
+  function nextQuestion(){
+    if(!randomMode){
+      if(sequentialIndex < dictionary.length){
+        setQuestion(dictionary[sequentialIndex]);
+        return;
+      }
+      randomMode=true;
+    }
+
+    let idx=Math.floor(Math.random()*dictionary.length);
+    if(dictionary.length>1){
+      let guard=0;
+      while(idx===lastRandomIndex && guard<20){ idx=Math.floor(Math.random()*dictionary.length); guard++; }
+    }
+    lastRandomIndex=idx;
+    setQuestion(dictionary[idx]);
+  }
+
+  function resetTest(){
+    sequentialIndex=0;
+    randomMode=false;
+    lastRandomIndex=-1;
+    completedCount=0;
+    correctChars=0;
+    wrongChars=0;
+    timeLeft=TEST_SECONDS;
+    typedLength=0;
+    currentTarget='';
+    transitioning=false;
+    updateHud();
+  }
+
+  async function startTest(){
+    if(dictionary.length!==REQUIRED_QUESTIONS || gameStarted) return;
+    resetTest();
+    showScreen(gameScreen);
+    await runCountdown();
+    gameStarted=true;
+    nextQuestion();
+    timerInterval=setInterval(()=>{
+      timeLeft--;
+      updateHud();
+      if(timeLeft<=0) finishTest();
+    },1000);
+  }
+
+  function runCountdown(){
+    return new Promise(resolve=>{
+      let n=3;
+      countdownOverlay.classList.add('show');
+      countdownNumber.textContent=n;
+      const tick=setInterval(()=>{
+        n--;
+        if(n>0){
+          countdownNumber.style.animation='none';
+          void countdownNumber.offsetWidth;
+          countdownNumber.style.animation='countPop .7s ease both';
+          countdownNumber.textContent=n;
+        }else{
+          clearInterval(tick);
+          countdownNumber.textContent='開始';
+          setTimeout(()=>{
+            countdownOverlay.classList.remove('show');
+            resolve();
+          },500);
+        }
+      },800);
+    });
+  }
+
+  function completeQuestion(){
+    transitioning=true;
+    completedCount++;
+    target.classList.add('complete');
+    feedback.textContent='✓ 完成';
+    feedback.className='feedback good';
+
+    if(!randomMode){
+      sequentialIndex++;
+      if(sequentialIndex>=dictionary.length){
+        randomMode=true;
+      }
+    }
+    updateHud();
+
+    setTimeout(()=>{
+      if(!gameStarted) return;
+      target.classList.remove('complete');
+      transitioning=false;
+      nextQuestion();
+    },430);
+  }
+
+  function registerError(key){
+    wrongChars++;
+    updateHud();
+    target.classList.remove('error');
+    void target.offsetWidth;
+    target.classList.add('error');
+    feedback.textContent=`✗ 「${key===' '?'Space':key}」不正確`;
+    feedback.className='feedback bad';
+    setTimeout(()=>target.classList.remove('error'),220);
+  }
+
+  window.addEventListener('keydown',e=>{
+    if(['Shift','Control','Alt','Meta','CapsLock','Process'].includes(e.key)) return;
+
+    if(!gameStarted){
+      if(e.key==='Enter' && setupScreen.classList.contains('active') && !startBtn.disabled) startTest();
+      return;
+    }
+    if(transitioning) return;
+    if(e.key.length!==1) return;
+
+    e.preventDefault();
+    const chars=Array.from(currentTarget);
+    const expected=chars[typedLength];
+
+    if(e.key===expected){
+      correctChars++;
+      typedLength++;
+      renderTarget();
+      feedback.textContent='';
+      feedback.className='feedback';
+      updateHud();
+      if(typedLength===chars.length) completeQuestion();
+    }else{
+      registerError(e.key);
+    }
+  });
+
+  function finishTest(){
+    if(!gameStarted && !timerInterval) return;
+    gameStarted=false;
+    transitioning=false;
+    if(timerInterval){ clearInterval(timerInterval); timerInterval=null; }
+    timeLeft=Math.max(0,timeLeft);
+
+    document.getElementById('finalCompleted').textContent=completedCount;
+    document.getElementById('finalAccuracy').textContent=accuracy()+'%';
+    document.getElementById('finalCorrect').textContent=correctChars;
+    document.getElementById('finalWrong').textContent=wrongChars;
+    document.getElementById('finalFirstRound').textContent=Math.min(sequentialIndex,15)+' / 15';
+    showScreen(resultScreen);
+  }
+
+  startBtn.addEventListener('click',startTest);
+  document.getElementById('endBtn').addEventListener('click',()=>{
+    if(confirm('確定要提前結束測驗嗎？')) finishTest();
+  });
+  document.getElementById('retryBtn').addEventListener('click',()=>{
+    showScreen(setupScreen);
+    setTimeout(startTest,100);
+  });
+  document.getElementById('setupBtn').addEventListener('click',()=>showScreen(setupScreen));
+  window.addEventListener('resize',fitText);
+
+  autoLoadDictionary();
+</script>
+</body>
+</html>
